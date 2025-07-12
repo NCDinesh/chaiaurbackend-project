@@ -134,6 +134,29 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    if(!isValidObjectId(videoId)){
+        throw new ApiError(400,"This video id is not valid")
+
+    }
+
+    const video = await Video.findById(videoId)
+
+    if(!video){
+        throw new ApiError(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(403, "You dont have permission to toggle this video")
+    }
+
+    video.isPublished = !video.isPublished
+
+    await video.save({validateBeforeSave : false})
+
+    return res.status(200).json(
+        new ApiResponse (200, video, "Video toggled Successfully!")
+    )
 })
 
 export {
