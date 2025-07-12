@@ -4,7 +4,7 @@ import {User} from "../models/user.models.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import {uploadOnCloudinary} from "../utils/cloudinary.js"
+import {uploadOnCloudinary,deleteOnCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -84,14 +84,53 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: update video details like title, description, thumbnail
+    const {title, description} = req.body
+    const thumbnailFile = req.file?.path
 
+    if(!isValidObjectId(videoId)) {
+        throw new ApiError(400, "This video is not valid")
+    }
+    
+if (
+  !thumbnailFile &&
+  (!title || title.trim() === "") &&
+  (!description || description.trim() === "")
+) {
+  throw new ApiError(400, "At least one non-empty field is required for update");
+}
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: delete video
+    if(!isValidObjectId(videoId)) {
+        throw new ApiError(400, " This Video id is not valid")
+    }
+
+    const video = await Video.findById(videoId)
+    if(!video) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    if(video.owner.toString() !== req.user._id.toString()) {
+        throw new ApiError(400, "You don't have permission to delete this video")
+    }
+
+    if(video.videoFile){
+        await deleteOnCloudinary(video.videoFile.public_id,"video")
+    }
+
+    const deleteResponse = await Video.findByIdAndDelete(videoId)
+    if(!deleteResponse) {
+        throw new ApiError(500, "Something went wrong while deleting video!!")
+    }
+
+    return res.status(200)
+    .json( 
+        new ApiResponse(200, deleteResponse, "Video deleted successfully")
+    )
 })
+
+
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
