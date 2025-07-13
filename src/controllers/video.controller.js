@@ -8,9 +8,67 @@ import {uploadOnCloudinary,deleteOnCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
-})
+  const {
+    page = 1,
+    limit = 10,
+    query = "",
+    sortBy = "createdAt",
+    sortType = -1,
+    userId, // optional — only filter by user if passed
+  } = req.query;
+
+  const matchConditions = {};
+
+  // Filter by specific user if userId is explicitly provided
+  if (userId) {
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      throw new ApiError(400, "Invalid user ID format");
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+
+    matchConditions.owner = new mongoose.Types.ObjectId(userId);
+  }
+
+  // Add search filter for title/description
+  if (query && query.trim() !== "") {
+    matchConditions.$or = [
+      { title: { $regex: query, $options: "i" } },
+      { description: { $regex: query, $options: "i" } },
+    ];
+  }
+
+  const aggregateQuery = Video.aggregate([
+    { $match: matchConditions },
+    {
+      $sort: {
+        [sortBy]: parseInt(sortType),
+      },
+    },
+  ]);
+
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+  };
+
+  const result = await Video.aggregatePaginate(aggregateQuery, options);
+
+   if (!result.docs || result.docs.length === 0) {
+    return res
+      .status(404)
+      .json(new ApiResponse(404, [], "No videos found matching the criteria"));
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, result, "Fetched videos successfully!"));
+});
+
+export default getAllVideos;
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description, isPublished = true} = req.body
