@@ -35,12 +35,12 @@ const getVideoComments = asyncHandler(async (req, res) => {
         },
 
         {
-            $lookup: {
-                from: "users",
-                localField:"owner",
-                foreignField:"_id",
-                as: "owner"
-            }
+        $lookup: {
+            from: "users",
+            localField:"Owner",
+            foreignField:"_id",
+            as: "owner"
+        }
         },
 
        { $addFields: {

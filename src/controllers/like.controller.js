@@ -4,6 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.models.js";
+import { Comment } from "../models/comment.models.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -94,51 +95,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "Comment liked successfully"));
 });
 
-const toggleTweetLike = asyncHandler(async (req, res) => {
-const { tweetId } = req.params;
-
-  if (!isValidObjectId(tweetId)) {
-    throw new ApiError(400, "Invalid tweet ID");
-  }
-
-  const tweet = await Tweet.findById(tweetId);
-  if (!tweet) {
-    throw new ApiError(404, "Tweet not found");
-  }
-
-  const existingLike = await Like.findOne({
-    tweet: tweetId,
-    likedBy: req.user._id,
-  });
-
-  if (existingLike) {
-    const unlike = await Like.deleteOne({
-      tweet: tweetId,
-      likedBy: req.user._id,
-    });
-
-    if (!unlike) {
-      throw new ApiError(500, "Error while unliking tweet");
-    }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, {}, "Tweet unliked successfully"));
-  }
-
-  const like = await Like.create({
-    tweet: tweetId,
-    likedBy: req.user._id,
-  });
-
-  if (!like) {
-    throw new ApiError(500, "Error while liking tweet");
-  }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(200, {}, "Tweet liked successfully"));
-});
 
 const getLikedVideos = asyncHandler(async (req, res) => {
   const userId = req.user._id;
@@ -211,4 +167,4 @@ const getLikedVideos = asyncHandler(async (req, res) => {
   );
 });
 
-export { toggleCommentLike, toggleTweetLike, toggleVideoLike, getLikedVideos };
+export { toggleCommentLike,  toggleVideoLike, getLikedVideos };
