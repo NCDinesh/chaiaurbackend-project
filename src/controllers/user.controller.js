@@ -115,14 +115,20 @@ const loginUser = asyncHandler(async (req, res) => {
   });
 
   if (!user) {
-    throw new ApiError(404, "User does not exist");
+    return res.status(401).json({
+    success: false,
+    message: "user doesnt exist",
+  });
   }
 
   const isPasswordValid = await user.isPasswordCorrect(password);
 
-  if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid user credentials");
-  }
+if (!isPasswordValid) {
+  return res.status(401).json({
+    success: false,
+    message: "Invalid user credentials",
+  });
+}
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
